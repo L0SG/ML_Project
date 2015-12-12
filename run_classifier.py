@@ -2,14 +2,17 @@ import data_module as dm
 import os
 import numpy as np
 import theano as th
+import learn_module as lm
+import sklearn.cluster as cl
 import sklearn.preprocessing as pp
+from scipy.cluster.vq import whiten
 
 # Variables (adapted from demo code of the paper)
 rf_size = 6
-step_size = 1
-num_centroids=1600
+step_size = 6
+num_centroids=100
 whitening = 1
-num_patches = 1000
+num_patches = 10000
 CIFAR_DIM = 32 * 32 * 3
 
 # Check if there already exists the extracted files
@@ -32,11 +35,26 @@ trainX, trainY = dm.load_train_data_all(data_batches)
 patches = dm.extract_all_patches(trainX, rf_size, step_size, num_patches)
 
 
-# normalize patches
+# standardize patches
 print("normalizing patches....")
-patches_normalized = pp.normalize(patches)
+patches_normalized = pp.scale(patches)
 
-#whitening
+# whitening
+if whitening:
+    whiten(patches_normalized)
+
+# K-means clustering
+print("clustering with kmeans...")
+kmeans= cl.KMeans(num_centroids, n_init=1, max_iter=10)
+kmeans_centroids = kmeans.fit(patches_normalized)
+
+
+# extract feature vector using kmeans centroids
+trainXC = lm.extract_features(trainX, kmeans_centroids, rf_size, step_size, whitening)
+
+
+
+
 
 print("break")
 
