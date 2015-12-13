@@ -18,7 +18,7 @@ def extract_features(trainX, args):
         scaler.fit(patches)
         patches = scaler.transform(patches)
         if whitening:
-            whiten(patches)
+            patches=whiten(patches)
         dist=cdist(patches, kmeans_centroids.cluster_centers_)
         f_k=[]
         """
