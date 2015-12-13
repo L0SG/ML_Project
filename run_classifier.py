@@ -6,11 +6,13 @@ import learn_module as lm
 import sklearn.cluster as cl
 import sklearn.preprocessing as pp
 from scipy.cluster.vq import whiten
+from sklearn.svm import LinearSVC
+from sklearn.metrics import confusion_matrix
 
 # Variables (adapted from demo code of the paper)
 rf_size = 6
-step_size = 6
-num_centroids=100
+step_size = 2
+num_centroids = 100
 whitening = 1
 num_patches = 10000
 CIFAR_DIM = 32 * 32 * 3
@@ -35,7 +37,6 @@ trainX, trainY = dm.load_train_data_all(data_batches)
 # extract all patches
 patches = dm.extract_all_patches(trainX, rf_size, step_size, num_patches)
 
-
 # standardize patches
 print("normalizing patches....")
 patches_normalized = pp.scale(patches)
@@ -46,20 +47,32 @@ if whitening:
 
 # K-means clustering
 print("clustering with kmeans...")
-kmeans= cl.KMeans(num_centroids, n_init=1, max_iter=10)
+kmeans= cl.KMeans(num_centroids, n_jobs=-1, n_init=12, max_iter=20)
 kmeans_centroids = kmeans.fit(patches_normalized)
-
 
 # extract feature vector using kmeans centroids
 # trainXC is now (# of imput images) * 4K vector
 trainXC = lm.extract_features(trainX, kmeans_centroids, rf_size, step_size, whitening, pooling_dim)
 
+#classification
+print("training classifier...")
+classifier_svm = LinearSVC()
+classifier_svm.fit(trainXC, trainY)
+print("training done")
 
-
-
-
-
-print("break")
-
-
-
+# testing
+# perform same preprocessing as training data
+test_batch = dm.unpickle(['data_batch_2'])
+testX, testY = dm.load_train_data_all(test_batch)
+patches = dm.extract_all_patches(testX, rf_size, step_size, num_patches)
+patches_normalized = pp.scale(patches)
+if whitening:
+    whiten(patches_normalized)
+# extract feature vector
+testXC = lm.extract_features(testX, kmeans_centroids, rf_size, step_size, whitening, pooling_dim)
+# predict class labels for test data
+predictY = classifier_svm.predict(testXC)
+confusion = confusion_matrix(testY, predictY)
+print(confusion)
+print(np.sum(np.diag(confusion)))
+print(np.sum(confusion))

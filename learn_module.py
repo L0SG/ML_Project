@@ -28,8 +28,8 @@ def extract_features(trainX, kmeans_centroids, rf_size, step_size, whitening, po
 
 
         # pooling
-        prows = (32-rf_size)/step_size+1
-        pcols = (32-rf_size)/step_size+1
+        prows = (32-rf_size+1)/step_size
+        pcols = (32-rf_size+1)/step_size
         f_k=np.reshape(f_k, (prows, pcols, len(kmeans_centroids.cluster_centers_)))
         f_k=sum_pooling(f_k, pooling_dim)
 

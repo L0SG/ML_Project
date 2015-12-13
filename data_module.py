@@ -56,8 +56,10 @@ def extract_all_patches(trainX, rf_size, step_size, num_patches=-1, num_images=-
             break
         if iter_image == num_images:
             break
-        if divmod(iter_image, 100)[1] == 0:
+        if divmod(iter_image, 1000)[1] == 0:
             print(str(iter_image)+" of "+str(len(trainX))+" data extracted...")
+    print("total extracted # data : "+str(iter_image))
+    print("total extracted # patch : "+str(iter_patch))
     return patches
 
 
