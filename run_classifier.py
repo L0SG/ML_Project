@@ -18,9 +18,9 @@ tic=time.clock()
 # Variables (adapted from demo code of the paper)
 rf_size = 6
 step_size = 2
-num_centroids = 10
+num_centroids = 500
 whitening = 0
-num_patches = 10000
+num_patches = 100000
 CIFAR_DIM = 32 * 32 * 3
 pooling_dim = 2
 
@@ -59,7 +59,7 @@ if whitening:
 
 # K-means clustering
 print("clustering with kmeans...")
-kmeans= cl.KMeans(num_centroids, n_jobs=-1, n_init=12, max_iter=10)
+kmeans= cl.KMeans(num_centroids, n_jobs=-1, n_init=12, max_iter=30)
 kmeans_centroids = kmeans.fit(patches_normalized)
 
 # extract feature vector using kmeans centroids
@@ -84,7 +84,7 @@ print("training done")
 
 # testing
 print("\ntesting")
-test_batch = dm.unpickle(['data_batch_1'])
+test_batch = dm.unpickle(['data_batch_2'])
 testX, testY = dm.load_train_data_all(test_batch)
 # extract feature vector
 print("extracting feature vector...")
