@@ -19,15 +19,25 @@ def extract_features(trainX, args):
         patches = scaler.transform(patches)
         if whitening:
             whiten(patches)
-
-        # hard kmeans activation function
         dist=cdist(patches, kmeans_centroids.cluster_centers_)
         f_k=[]
+        """
+        # hard kmeans activation function
         for i in range(0, len(dist)):
             index=np.argmin(dist[i])
             hard_assignment = np.zeros((1, len(kmeans_centroids.cluster_centers_)))
             hard_assignment[0, index]=1
             f_k.append(hard_assignment)
+        f_k=np.concatenate(f_k)
+        """
+        # triangle kmeans activation function
+        for i in range(0, len(dist)):
+            mu_z=np.sqrt(np.mean(dist[i]))
+            z_k=np.sqrt(dist[i])
+            temp1=mu_z-z_k
+            temp2=np.zeros((1, len(kmeans_centroids.cluster_centers_)))
+            tri_assignment=np.maximum(temp1, temp2)
+            f_k.append(tri_assignment)
         f_k=np.concatenate(f_k)
 
         # pooling

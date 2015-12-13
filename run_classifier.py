@@ -18,12 +18,12 @@ tic=time.clock()
 # Variables (adapted from demo code of the paper)
 CIFAR_DIM = 32 * 32 * 3
 whitening = 1
-num_patches = 1000
+num_patches = 50000
 num_centroids = 200
 rf_size = 6
 step_size = 2
 pooling_dim = 2
-
+kmeans_iteration = 100
 # Check if there already exists the extracted files
 if not os.path.isdir(os.path.join(os.path.realpath(''), "cifar-10-batches-py")):
     dm.extract_file()
@@ -34,25 +34,25 @@ label_names = meta[0]['label_names']
 num_cases_per_batch = meta[0]['num_cases_per_batch']
 
 # Unpickle data_batch files
-data_batches = dm.unpickle(['data_batch_1', 'data_batch_2', 'data_batch_3', 'data_batch_4', 'data_batch_5'])
-#data_batches = dm.unpickle(['data_batch_1'])
+#data_batches = dm.unpickle(['data_batch_1', 'data_batch_2', 'data_batch_3', 'data_batch_4', 'data_batch_5'])
+data_batches = dm.unpickle(['data_batch_1'])
 
 # load all train data
 trainX, trainY = dm.load_train_data_all(data_batches)
 
 # extract patches
 # sequential method
-"""
+
 patches = dm.extract_all_patches(trainX, rf_size, step_size, num_patches)
-"""
+
 # random method
-patches = dm.extract_random_patches(trainX, rf_size, step_size, num_patches)
+#patches = dm.extract_random_patches(trainX, rf_size, step_size, num_patches)
 
 # standardize patches
 print("normalizing patches....")
-scaler = pp.StandardScaler()
-scaler.fit(patches)
-patches=scaler.transform(patches)
+scaler_sample = pp.StandardScaler()
+scaler_sample.fit(patches)
+patches=scaler_sample.transform(patches)
 
 # whitening
 if whitening:
@@ -62,7 +62,7 @@ if whitening:
 # K-means clustering
 print("clustering with kmeans...")
 tic_cluster = time.clock()
-kmeans= cl.KMeans(num_centroids, n_jobs=-1, n_init=12, max_iter=100)
+kmeans= cl.KMeans(num_centroids, n_jobs=-1, n_init=12, max_iter=kmeans_iteration)
 kmeans_centroids = kmeans.fit(patches)
 toc_cluster = time.clock()
 print("clustering time : "+str(toc_cluster-tic_cluster))
@@ -94,6 +94,10 @@ classifier_svm.fit(trainXC, trainY)
 toc_classifier = time.clock()
 print("training time : "+str(toc_classifier-tic_classifier))
 print("training done")
+predictY = classifier_svm.predict(trainXC)
+confusion = confusion_matrix(trainY, predictY)
+print("train accuracy : "+str(float(np.sum(np.diag(confusion)))*100/np.sum(confusion)))
+
 
 # testing
 print("\ntesting")
@@ -109,7 +113,6 @@ if __name__=='__main__':
                        (testX[i:i+numimages] for i in range(0, len(testX), numimages)),
                         itertools.repeat([kmeans_centroids, rf_size, step_size, whitening, pooling_dim])))
     testXC = np.concatenate(testXC)
-
 testXC=scaler.transform(testXC)
 # predict class labels for test data
 predictY = classifier_svm.predict(testXC)
