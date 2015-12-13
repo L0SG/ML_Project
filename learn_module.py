@@ -1,11 +1,14 @@
-def extract_features(trainX, kmeans_centroids, rf_size, step_size, whitening, pooling_dim):
-    print("extracting feature vector...")
+
+
+def extract_features(trainX, args):
     import data_module as dm
     import sklearn.preprocessing as pp
-    from numpy import linalg as la
     from scipy.cluster.vq import whiten
     import numpy as np
     from scipy.spatial.distance import cdist
+
+    # unpack args (for pool.map)
+    kmeans_centroids, rf_size, step_size, whitening, pooling_dim = args
 
     trainXC=[]
     for image in trainX:
@@ -25,11 +28,9 @@ def extract_features(trainX, kmeans_centroids, rf_size, step_size, whitening, po
             f_k.append(hard_assignment)
         f_k=np.concatenate(f_k)
 
-
-
         # pooling
-        prows = (32-rf_size+1)/step_size
-        pcols = (32-rf_size+1)/step_size
+        prows = np.sqrt(len(f_k))
+        pcols = np.sqrt(len(f_k))
         f_k=np.reshape(f_k, (prows, pcols, len(kmeans_centroids.cluster_centers_)))
         f_k=sum_pooling(f_k, pooling_dim)
 
