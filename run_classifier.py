@@ -14,6 +14,7 @@ num_centroids=100
 whitening = 1
 num_patches = 10000
 CIFAR_DIM = 32 * 32 * 3
+pooling_dim = 2
 
 # Check if there already exists the extracted files
 if not os.path.isdir(os.path.join(os.path.realpath(''), "cifar-10-batches-py")):
@@ -50,7 +51,9 @@ kmeans_centroids = kmeans.fit(patches_normalized)
 
 
 # extract feature vector using kmeans centroids
-trainXC = lm.extract_features(trainX, kmeans_centroids, rf_size, step_size, whitening)
+# trainXC is now (# of imput images) * 4K vector
+trainXC = lm.extract_features(trainX, kmeans_centroids, rf_size, step_size, whitening, pooling_dim)
+
 
 
 
