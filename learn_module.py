@@ -14,12 +14,14 @@ def extract_features(trainX, args):
     for image in trainX:
         # perform same process as sampled patches for kmeans
         patches = dm.extract_all_patches_by_image(image, rf_size, step_size)
-        patches_normalized = pp.scale(patches)
+        scaler = pp.StandardScaler()
+        scaler.fit(patches)
+        patches = scaler.transform(patches)
         if whitening:
-            whiten(patches_normalized)
+            whiten(patches)
 
         # hard kmeans activation function
-        dist=cdist(patches_normalized, kmeans_centroids.cluster_centers_)
+        dist=cdist(patches, kmeans_centroids.cluster_centers_)
         f_k=[]
         for i in range(0, len(dist)):
             index=np.argmin(dist[i])
@@ -53,3 +55,19 @@ def sum_pooling(f_k, pooling_dim):
             result.append(sum)
     result = np.concatenate(result)
     return result
+
+
+def max_pooling(f_k, pooling_dim):
+    import numpy as np
+    row=np.round(len(f_k)/pooling_dim)
+    col=np.round(len(f_k)/pooling_dim)
+    result=[]
+    for i in range(0, pooling_dim):
+        for j in range(0, pooling_dim):
+            patch = f_k[i:i+row, j:j+col]
+            patch= np.reshape(patch, (row*col, len(patch[0][0])))
+            sum = np.amax(patch, axis=0)
+            result.append(sum)
+    result = np.concatenate(result)
+    return result
+

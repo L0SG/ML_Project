@@ -69,7 +69,6 @@ def extract_random_patches(trainX, rf_size, step_size, num_patches=-1, num_image
     print("extracting random possible patches from data...")
     patches = []
     iter_patch = 0
-    iter_image = 0
     while iter_patch<=num_patches:
         for image in trainX:
             rnd = random.randrange(0, 100)
@@ -91,14 +90,11 @@ def extract_random_patches(trainX, rf_size, step_size, num_patches=-1, num_image
                     if iter_patch == num_patches:
                         break
                 if iter_patch == num_patches:
-                        break
-            iter_image+=1
+                    break
             if iter_patch == num_patches:
                 break
-            if iter_image == num_images:
-                break
-            if divmod(iter_patch, 10000)[1] == 0:
-                print(str(iter_patch)+" of "+str(num_patches)+" patch extracted...")
+        if iter_patch == num_patches:
+            break
     print("total extracted # patch : "+str(iter_patch))
     return patches
 

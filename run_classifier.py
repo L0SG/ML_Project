@@ -1,27 +1,27 @@
 import data_module as dm
 import os
 import numpy as np
-import theano as th
 import learn_module as lm
 import sklearn.cluster as cl
 import sklearn.preprocessing as pp
 from scipy.cluster.vq import whiten
 from sklearn.svm import LinearSVC
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.metrics import confusion_matrix
 import time
 import itertools
 from multiprocessing import Pool, freeze_support
-
+from sklearn import grid_search
 
 tic=time.clock()
 
 # Variables (adapted from demo code of the paper)
+CIFAR_DIM = 32 * 32 * 3
+whitening = 1
+num_patches = 1000
+num_centroids = 200
 rf_size = 6
 step_size = 2
-num_centroids = 500
-whitening = 0
-num_patches = 100000
-CIFAR_DIM = 32 * 32 * 3
 pooling_dim = 2
 
 # Check if there already exists the extracted files
@@ -34,8 +34,8 @@ label_names = meta[0]['label_names']
 num_cases_per_batch = meta[0]['num_cases_per_batch']
 
 # Unpickle data_batch files
-#data_batches = dm.unpickle(['data_batch_1', 'data_batch_2', 'data_batch_3', 'data_batch_4', 'data_batch_5'])
-data_batches = dm.unpickle(['data_batch_1'])
+data_batches = dm.unpickle(['data_batch_1', 'data_batch_2', 'data_batch_3', 'data_batch_4', 'data_batch_5'])
+#data_batches = dm.unpickle(['data_batch_1'])
 
 # load all train data
 trainX, trainY = dm.load_train_data_all(data_batches)
@@ -48,19 +48,24 @@ patches = dm.extract_all_patches(trainX, rf_size, step_size, num_patches)
 # random method
 patches = dm.extract_random_patches(trainX, rf_size, step_size, num_patches)
 
-
 # standardize patches
 print("normalizing patches....")
-patches_normalized = pp.scale(patches)
+scaler = pp.StandardScaler()
+scaler.fit(patches)
+patches=scaler.transform(patches)
 
 # whitening
 if whitening:
-    whiten(patches_normalized)
+    whiten(patches)
+
 
 # K-means clustering
 print("clustering with kmeans...")
-kmeans= cl.KMeans(num_centroids, n_jobs=-1, n_init=12, max_iter=30)
-kmeans_centroids = kmeans.fit(patches_normalized)
+tic_cluster = time.clock()
+kmeans= cl.KMeans(num_centroids, n_jobs=-1, n_init=12, max_iter=100)
+kmeans_centroids = kmeans.fit(patches)
+toc_cluster = time.clock()
+print("clustering time : "+str(toc_cluster-tic_cluster))
 
 # extract feature vector using kmeans centroids
 # trainXC is now (# of imput images) * 4K vector
@@ -76,15 +81,23 @@ if __name__=='__main__':
                         itertools.repeat([kmeans_centroids, rf_size, step_size, whitening, pooling_dim])))
     trainXC = np.concatenate(trainXC)
 
+# standardize data
+scaler = pp.StandardScaler()
+scaler.fit(trainXC)
+trainXC=scaler.transform(trainXC)
+
 #classification
 print("training classifier...")
-classifier_svm = LinearSVC()
+tic_classifier = time.clock()
+classifier_svm = OneVsRestClassifier(LinearSVC(), n_jobs=-1)
 classifier_svm.fit(trainXC, trainY)
+toc_classifier = time.clock()
+print("training time : "+str(toc_classifier-tic_classifier))
 print("training done")
 
 # testing
 print("\ntesting")
-test_batch = dm.unpickle(['data_batch_2'])
+test_batch = dm.unpickle(['test_batch'])
 testX, testY = dm.load_train_data_all(test_batch)
 # extract feature vector
 print("extracting feature vector...")
@@ -96,6 +109,8 @@ if __name__=='__main__':
                        (testX[i:i+numimages] for i in range(0, len(testX), numimages)),
                         itertools.repeat([kmeans_centroids, rf_size, step_size, whitening, pooling_dim])))
     testXC = np.concatenate(testXC)
+
+testXC=scaler.transform(testXC)
 # predict class labels for test data
 predictY = classifier_svm.predict(testXC)
 confusion = confusion_matrix(testY, predictY)
