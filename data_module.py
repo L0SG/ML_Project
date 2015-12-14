@@ -112,3 +112,32 @@ def extract_all_patches_by_image(image, rf_size, step_size):
             extracted_patch_reshaped = np.reshape(extracted_patch, (3*rf_size*rf_size))
             patches.append(extracted_patch_reshaped)
     return patches
+
+
+def whiten(X):
+    import numpy as np
+    """
+    Applies ZCA whitening to the data (X)
+    http://xcorr.net/2011/05/27/whiten-a-matrix-matlab-code/
+
+    X: numpy 2d array
+        input data, rows are data points, columns are features
+
+    Returns: ZCA whitened 2d array
+    """
+    assert(X.ndim == 2)
+    EPS = 10e-5
+
+    #   covariance matrix
+    cov = np.dot(X.T, X)
+    M = np.mean(X)
+    #   d = (lambda1, lambda2, ..., lambdaN)
+    d, E = np.linalg.eigh(cov)
+    #   D = diag(d) ^ (-1/2)
+    D = np.diag(1. / np.sqrt(d + EPS))
+    #   W_zca = E * D * E.T
+    W = np.dot(np.dot(E, D), E.T)
+
+    X_white = np.dot(X, W)
+
+    return X_white, W

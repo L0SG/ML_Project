@@ -6,11 +6,11 @@ def extract_features(trainX, args):
     from scipy.cluster.vq import whiten
     import numpy as np
     from scipy.spatial.distance import cdist
-
     # unpack args (for pool.map)
-    kmeans_centroids, rf_size, step_size, whitening, pooling_dim = args
+    kmeans_centroids, rf_size, step_size, whitening, W, pooling_dim = args
 
     trainXC=[]
+
     for image in trainX:
         # perform same process as sampled patches for kmeans
         patches = dm.extract_all_patches_by_image(image, rf_size, step_size)
@@ -18,11 +18,12 @@ def extract_features(trainX, args):
         scaler.fit(patches)
         patches = scaler.transform(patches)
         if whitening:
-            patches=whiten(patches)
-        dist=cdist(patches, kmeans_centroids.cluster_centers_)
-        f_k=[]
+            patches=np.dot(patches, W)
+
         """
         # hard kmeans activation function
+        dist=cdist(patches, kmeans_centroids.cluster_centers_,'sqeuclidean')
+        f_k=[]
         for i in range(0, len(dist)):
             index=np.argmin(dist[i])
             hard_assignment = np.zeros((1, len(kmeans_centroids.cluster_centers_)))
@@ -30,15 +31,20 @@ def extract_features(trainX, args):
             f_k.append(hard_assignment)
         f_k=np.concatenate(f_k)
         """
+
+
         # triangle kmeans activation function
+        dist=cdist(patches, kmeans_centroids.cluster_centers_)
+        f_k=[]
         for i in range(0, len(dist)):
-            mu_z=np.sqrt(np.mean(dist[i]))
-            z_k=np.sqrt(dist[i])
+            mu_z=np.mean(dist[i])
+            z_k=dist[i]
             temp1=mu_z-z_k
             temp2=np.zeros((1, len(kmeans_centroids.cluster_centers_)))
             tri_assignment=np.maximum(temp1, temp2)
             f_k.append(tri_assignment)
         f_k=np.concatenate(f_k)
+
 
         # pooling
         prows = np.sqrt(len(f_k))
